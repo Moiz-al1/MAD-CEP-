@@ -45,6 +45,20 @@ class _RecogScreenState extends State<RecogScreen> {
     }
   }
 
+   void _copyTextToClipboard() async {
+    if (results.isNotEmpty) {
+      await Clipboard.setData(ClipboardData(text: results));
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Text copied to clipboard'),
+        ),
+      );
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -76,9 +90,15 @@ class _RecogScreenState extends State<RecogScreen> {
                               style:
                                   TextStyle(color: Colors.white, fontSize: 18),
                             ),
-                            Icon(
-                              Icons.copy,
-                              color: Colors.white,
+                            InkWell(
+                              child: Icon(
+                                Icons.copy,
+                                size: 45,
+                                color: Colors.white,
+                              ),
+                              onTap: () {
+                                _copyTextToClipboard();
+                              },
                             ),
                           ],
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
