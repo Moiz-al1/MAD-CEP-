@@ -1,26 +1,35 @@
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+// import 'Utility.dart'
+import './DB.dart';
+import './Model/Photo.dart';
+import './Util/PhotoConvert.dart';
+import 'dart:async';
 
 class RecogScreen extends StatefulWidget {
   File image;
-  RecogScreen(this.image);
+  RecogScreen(this.image, {super.key});
 
   @override
   State<RecogScreen> createState() => _RecogScreenState();
 }
 
 class _RecogScreenState extends State<RecogScreen> {
+  String results = "";
   late TextRecognizer textRecognizer;
+  late DB _db;
+
   @override
   void initState() {
     super.initState();
+    _db = DB();
     textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
     recognizeText();
   }
 
-  String results = "";
   void recognizeText() async {
     InputImage inputImage = InputImage.fromFile(widget.image);
     final RecognizedText recognizedText =
@@ -30,22 +39,9 @@ class _RecogScreenState extends State<RecogScreen> {
     setState(() {
       results;
     });
-    for (TextBlock block in recognizedText.blocks) {
-      final Rect rect = block.boundingBox;
-      final List<Point<int>> cornerPoints = block.cornerPoints;
-      final String text = block.text;
-      final List<String> languages = block.recognizedLanguages;
-
-      for (TextLine line in block.lines) {
-        // Same getters as TextBlock
-        for (TextElement element in line.elements) {
-          // Same getters as TextBlock
-        }
-      }
-    }
   }
 
-   void _copyTextToClipboard() async {
+  void _copyTextToClipboard() async {
     if (results.isNotEmpty) {
       await Clipboard.setData(ClipboardData(text: results));
       if (!mounted) {
@@ -58,11 +54,26 @@ class _RecogScreenState extends State<RecogScreen> {
       );
     }
   }
-  
+
+  void _savePhoto(File image) {
+    String imgString = Photoconvert.base64String(image.readAsBytesSync());
+    Photo photo = Photo(id: 0, photoName: imgString);
+    _db.save(photo);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Document Saved.'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+        ),
         backgroundColor: Colors.blueAccent,
         title: const Text(
           "Recognizer",
@@ -81,27 +92,41 @@ class _RecogScreenState extends State<RecogScreen> {
                   children: [
                     Container(
                       color: Colors.blueAccent,
-                      child: const Padding(
+                      child: Padding(
                         padding: EdgeInsets.all(8.0),
                         child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
+                            const Text(
                               "Results",
                               style:
                                   TextStyle(color: Colors.white, fontSize: 18),
                             ),
-                            InkWell(
-                              child: Icon(
-                                Icons.copy,
-                                size: 45,
-                                color: Colors.white,
-                              ),
-                              onTap: () {
-                                _copyTextToClipboard();
-                              },
+                            Row(
+                              children: [
+                                InkWell(
+                                  child: const Icon(
+                                    Icons.copy,
+                                    size: 40,
+                                    color: Colors.white,
+                                  ),
+                                  onTap: () {
+                                    _copyTextToClipboard();
+                                  },
+                                ),
+                                InkWell(
+                                  child: const Icon(
+                                    Icons.save,
+                                    size: 40,
+                                    color: Colors.white,
+                                  ),
+                                  onTap: () {
+                                    _savePhoto(widget.image);
+                                  },
+                                ),
+                              ],
                             ),
                           ],
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         ),
                       ),
                     ),
